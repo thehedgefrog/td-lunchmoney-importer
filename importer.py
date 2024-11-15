@@ -155,6 +155,60 @@ def confirm_import():
             return False
         print("Please answer 'yes' or 'no'")
 
+def update_account_balances(lunch, qfx_accounts, account_mapping, api_accounts):
+    """Update account balances from QFX data"""
+    # Create lookup for account display names
+    account_names = {
+        asset.id: f"{asset.name} ({asset.institution_name})"
+        for asset in api_accounts
+    }
+
+    print("\nAccount Balances:")
+    print("-" * 80)
+
+    # Track which accounts have balance updates
+    updates = []
+
+    for account in qfx_accounts:
+        asset_id = account_mapping.get(account.account_id)
+        if not asset_id or not hasattr(account.statement, 'available_balance'):
+            continue
+
+        new_balance = float(account.statement.available_balance)
+
+        # Find current balance from API accounts
+        current_balance = None
+        for asset in api_accounts:
+            if asset.id == asset_id:
+                current_balance = float(asset.balance)
+                break
+
+        print(f"\nAccount: {account_names[asset_id]}")
+        print(f"Current balance: ${current_balance:,.2f}")
+        print(f"New balance: ${new_balance:,.2f}")
+
+        if current_balance != new_balance:
+            while True:
+                response = input("Update this account balance? (yes/no): ").lower().strip()
+                if response in ['yes', 'y']:
+                    updates.append((asset_id, new_balance))
+                    break
+                if response in ['no', 'n']:
+                    break
+                print("Please answer 'yes' or 'no'")
+
+    # Perform updates if any
+    if updates:
+        print("\nUpdating account balances...")
+        for asset_id, balance in updates:
+            try:
+                lunch.update_asset(asset_id=asset_id, balance=balance)
+                print(f"Updated {account_names[asset_id]}")
+            except Exception as e:
+                print(f"Error updating {account_names[asset_id]}: {e}")
+    else:
+        print("\nNo balance updates requested")
+
 def main():
     parser = argparse.ArgumentParser(description="Process QFX file and match accounts")
     parser.add_argument("input_file", help="The QFX file to process")
@@ -229,7 +283,6 @@ def main():
         sys.exit(0)
 
     try:
-        # Pass transactions directly, API returns list of IDs
         result = lunch.insert_transactions(
             transactions=transactions,
             apply_rules=True,
@@ -239,6 +292,11 @@ def main():
             skip_balance_update=False
         )
         print(f"Successfully imported {len(result)} transactions")
+
+        # Add balance update flow
+        print("\nChecking account balances...")
+        update_account_balances(lunch, qfx_accounts, config['account_mapping'], api_accounts)
+
     except Exception as e:
         print(f"Error importing transactions: {e}")
         sys.exit(1)
