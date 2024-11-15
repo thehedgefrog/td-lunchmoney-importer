@@ -1,0 +1,36 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base"
+  ],
+  "reviewers": ["thehedgefrog"],
+  "assignees": ["thehedgefrog"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchDepTypes": ["dependencies"],
+      "automerge": true
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "groupSlug": "github-actions",
+      "labels": ["ci"],
+      "packagePatterns": ["^actions/"],
+      "automerge": true
+    }
+  ],
+  "pip_requirements": {
+    "fileMatch": ["requirements.txt"]
+  },
+  "github-actions": {
+    "enabled": true,
+    "fileMatch": ["^\\.github/workflows/[^/]+\\.ya?ml$"]
+  },
+  "schedule": ["after 1pm every weekday"],
+  "labels": ["dependencies"],
+  "commitMessagePrefix": "chore(deps):",
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "enabledManagers": ["pip_requirements", "github-actions"]
+}
