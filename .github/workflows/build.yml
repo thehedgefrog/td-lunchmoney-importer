@@ -39,9 +39,10 @@ jobs:
       uses: sayyid5416/pyinstaller@v1.6.1
       with:
         python_ver: '3.11'
-        spec: 'src/importer.py'
-        requirements: 'src/requirements.txt'
+        spec: 'importer.py'
+        requirements: 'requirements.txt'
         options: --onefile --name "td-lunchmoney-importer"
+        upload_exe_with_name: ${{ matrix.asset_name }}
 
     - name: Release
       uses: softprops/action-gh-release@v2.1.0
