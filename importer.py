@@ -247,8 +247,16 @@ def confirm_import():
             return False
         print("Please answer 'yes' or 'no'")
 
-def update_account_balances(lunch, qfx_accounts, account_mapping, api_accounts):
+def update_account_balances(lunch, qfx_accounts, account_mapping):
     """Update account balances from QFX data"""
+    # Get fresh account data after transactions import
+    try:
+        api_accounts = lunch.get_assets()
+    except LunchMoneyError as e:
+        logger.error(f"Failed to get updated account data: {e}")
+        print("\nCouldn't retrieve current balances - skipping balance updates")
+        return False
+
     # Create lookup for account display names
     account_names = {
         asset.id: f"{asset.name} ({asset.institution_name})"
@@ -258,9 +266,7 @@ def update_account_balances(lunch, qfx_accounts, account_mapping, api_accounts):
     print("\nAccount Balances:")
     print("-" * 80)
 
-    # Track which accounts have balance updates
     updates = []
-
     for account in qfx_accounts:
         asset_id = account_mapping.get(account.account_id)
         if not asset_id or not hasattr(account.statement, 'available_balance'):
@@ -268,7 +274,7 @@ def update_account_balances(lunch, qfx_accounts, account_mapping, api_accounts):
 
         new_balance = float(account.statement.available_balance)
 
-        # Find current balance from API accounts
+        # Find current balance from fresh API data
         current_balance = None
         for asset in api_accounts:
             if asset.id == asset_id:
@@ -276,8 +282,8 @@ def update_account_balances(lunch, qfx_accounts, account_mapping, api_accounts):
                 break
 
         print(f"\nAccount: {account_names[asset_id]}")
-        print(f"Current balance: ${current_balance:,.2f}")
-        print(f"New balance: ${new_balance:,.2f}")
+        print(f"Current balance (after import): ${current_balance:,.2f}")
+        print(f"QFX balance: ${new_balance:,.2f}")
 
         if current_balance != new_balance:
             while True:
@@ -289,7 +295,6 @@ def update_account_balances(lunch, qfx_accounts, account_mapping, api_accounts):
                     break
                 print("Please answer 'yes' or 'no'")
 
-    # Perform updates if any
     if updates:
         print("\nUpdating account balances...")
         for asset_id, balance in updates:
@@ -300,6 +305,8 @@ def update_account_balances(lunch, qfx_accounts, account_mapping, api_accounts):
                 print(f"Error updating {account_names[asset_id]}: {e}")
     else:
         print("\nNo balance updates requested")
+
+    return True
 
 def validate_transactions(transactions: List[TransactionInsertObject]) -> bool:
     """Validate transactions before import"""
@@ -335,7 +342,7 @@ def import_transactions(lunch: LunchMoney, transactions: List[TransactionInsertO
         if len(result) == 0:
             print("\nNo new transactions imported.")
             print("Note: This usually means all transactions already exist in Lunch Money")
-            print("(Duplicate detection is based on date, amount, and account)")
+            print("(Duplicate detection is based on transaction external ID)")
         else:
             print(f"\nSuccessfully imported {len(result)} transactions")
 
@@ -433,7 +440,7 @@ def main() -> None:
                 graceful_exit()
 
             if import_transactions(state.lunch, transactions):
-                update_account_balances(state.lunch, qfx_accounts, state.config['account_mapping'], state.api_accounts)
+                update_account_balances(state.lunch, qfx_accounts, state.config['account_mapping'])
                 graceful_exit()
 
     except KeyboardInterrupt:
