@@ -8,6 +8,7 @@ Thumbs.db
 *.tfstate
 *.old
 old-*
+debug-*
 *.NO
 *.backup
 **/.vscode
