@@ -39,8 +39,8 @@ jobs:
       uses: sayyid5416/pyinstaller@v1.6.1
       with:
         python_ver: '3.11'
-        spec: 'importer.py'
-        requirements: 'requirements.txt'
+        spec: 'src/importer.py'
+        requirements: 'src/requirements.txt'
         options: --onefile --name "td-lunchmoney-importer"
 
     - name: Release
