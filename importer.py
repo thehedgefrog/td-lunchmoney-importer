@@ -1,27 +1,74 @@
 import json
 import sys
 import base64
+import logging
 import argparse
 from pathlib import Path
 from datetime import datetime
+from typing import List, Dict, Optional, Any
+from dataclasses import dataclass
 from ofxparse import OfxParser
-from lunchable import LunchMoney, TransactionInsertObject  # Import from lunchable
-from dataclasses import dataclass, asdict
-from typing import Optional
+from lunchable import LunchMoney, TransactionInsertObject
+from lunchable.exceptions import LunchMoneyError
 
-# Use Path for cross-platform compatibility
-CONFIG_FILE = Path.home() / ".lunchmoney_config.json"
+# Constants
+CONFIG_FILE = Path.home() / ".lunchmoney" / ".lunchmoney_config.json"
+LOG_DIR = Path.home() / ".lunchmoney" / "logs"
+LOG_FILE = LOG_DIR / f"importer-{datetime.now().strftime('%Y%m%d')}.log"
 
-def get_api_key():
+# Create log directory if it doesn't exist
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+# Configure logging - file only, no console output
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(LOG_FILE)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Log startup
+logger.info(f"Starting importer - Log file: {LOG_FILE}")
+
+# Constants
+CONFIG_FILE = Path.home() / ".lunchmoney" / ".lunchmoney_config.json"
+
+class ConfigurationState:
+    """Manage application configuration state"""
+    def __init__(self):
+        self.config: Optional[Dict[str, Any]] = None
+        self.lunch: Optional[LunchMoney] = None
+        self.api_accounts: List[Any] = []
+
+    def reset(self) -> None:
+        """Reset configuration state"""
+        if CONFIG_FILE.exists():
+            CONFIG_FILE.unlink()
+        self.config = None
+        self.lunch = None
+        self.api_accounts = []
+
+    def initialize(self, api_key: str) -> bool:
+        """Initialize LunchMoney client"""
+        try:
+            self.lunch = LunchMoney(access_token=api_key)
+            return verify_api_connection(self.lunch)
+        except LunchMoneyError as e:
+            logger.error(f"Failed to initialize LunchMoney client: {e}")
+            return False
+
+def get_api_key() -> str:
     """Prompt user for API key"""
     while True:
         key = input("Please enter your LunchMoney API key: ").strip()
         if key:
             return key
-        print("API key cannot be empty")
+        logger.warning("API key cannot be empty")
 
-def load_config():
-    """Load and decode existing config if it exists"""
+def load_config() -> Optional[Dict[str, Any]]:
+    """Load and decode existing config"""
     try:
         if CONFIG_FILE.exists():
             with open(CONFIG_FILE, 'r') as f:
@@ -29,11 +76,11 @@ def load_config():
                 json_str = base64.b64decode(encoded_data).decode('utf-8')
                 return json.loads(json_str)
     except (json.JSONDecodeError, IOError, base64.binascii.Error) as e:
-        print(f"Error loading config: {e}")
+        logger.error(f"Error loading config: {e}")
     return None
 
-def save_config(config):
-    """Encode and save config to file"""
+def save_config(config: Dict[str, Any]) -> None:
+    """Encode and save config"""
     try:
         CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
         json_str = json.dumps(config)
@@ -41,8 +88,8 @@ def save_config(config):
         with open(CONFIG_FILE, 'w') as f:
             f.write(encoded_data)
     except (IOError, TypeError) as e:
-        print(f"Error saving config: {e}")
-        sys.exit(1)
+        logger.error(f"Error saving config: {e}")
+        graceful_exit(1)
 
 def get_qfx_accounts(qfx_file):
     """Parse QFX file and return accounts"""
@@ -54,14 +101,14 @@ def get_qfx_accounts(qfx_file):
         print(f"Error parsing QFX file: {e}")
         sys.exit(1)
 
-def verify_api_connection(lunch):
-    """Verify API connection and greet user"""
+def verify_api_connection(lunch: LunchMoney) -> bool:
+    """Verify API connection"""
     try:
         user = lunch.get_user()
-        print(f"\nHi, {user.user_name}!")
+        logger.info(f"Connected as: {user.user_name}")
         return True
-    except Exception as e:
-        print(f"Error connecting to LunchMoney API: {e}")
+    except LunchMoneyError as e:
+        logger.error(f"API connection error: {e}")
         return False
 
 def do_onboarding(lunch, qfx_accounts, api_accounts):
@@ -114,10 +161,11 @@ def get_start_date():
         except ValueError:
             print("Invalid date format. Use YYYY-MM-DD")
 
-def graceful_exit():
+def graceful_exit(code: int = 0) -> None:
     """Handle clean program exit"""
-    print("\nExiting program...")
-    sys.exit(0)
+    cleanup()
+    logger.info("Exiting program")
+    sys.exit(code)
 
 @dataclass
 class TransactionObject:
@@ -253,98 +301,143 @@ def update_account_balances(lunch, qfx_accounts, account_mapping, api_accounts):
     else:
         print("\nNo balance updates requested")
 
-def main():
+def validate_transactions(transactions: List[TransactionInsertObject]) -> bool:
+    """Validate transactions before import"""
+    if not transactions:
+        logger.warning("No transactions to validate")
+        return False
+
+    for txn in transactions:
+        if not all([txn.date, txn.amount, txn.asset_id]):
+            logger.error(f"Invalid transaction: {txn}")
+            return False
+    return True
+
+def import_transactions(lunch: LunchMoney, transactions: List[TransactionInsertObject]) -> bool:
+    """Import transactions with proper error handling"""
+    try:
+        if not validate_transactions(transactions):
+            return False
+
+        result = lunch.insert_transactions(
+            transactions=transactions,
+            apply_rules=True,
+            skip_duplicates=True,
+            debit_as_negative=True,
+            check_for_recurring=True,
+            skip_balance_update=False
+        )
+
+        # Log result
+        logger.info(f"Import result: {len(result)} transactions imported")
+
+        # User feedback
+        if len(result) == 0:
+            print("\nNo new transactions imported.")
+            print("Note: This usually means all transactions already exist in Lunch Money")
+            print("(Duplicate detection is based on date, amount, and account)")
+        else:
+            print(f"\nSuccessfully imported {len(result)} transactions")
+
+        return True
+
+    except LunchMoneyError as e:
+        logger.error(f"API error during import: {e}")
+        print(f"Error importing transactions: {e}")
+        return False
+    except ValueError as e:
+        logger.error(f"Data validation error: {e}")
+        print(f"Error validating transactions: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error during import: {e}")
+        print(f"Unexpected error: {e}")
+        return False
+
+def cleanup() -> None:
+    """Cleanup resources"""
+    # Add cleanup operations if needed
+    pass
+
+def main() -> None:
+    """Main program flow with improved error handling"""
+    state = ConfigurationState()
+
     try:
         parser = argparse.ArgumentParser(description="Process QFX file and match accounts")
         parser.add_argument("input_file", help="The QFX file to process")
         args = parser.parse_args()
 
         if not Path(args.input_file).exists():
-            print(f"Input file not found: {args.input_file}")
-            sys.exit(1)
+            logger.error(f"Input file not found: {args.input_file}")
+            graceful_exit(1)
 
-        while True:  # Main configuration loop
-            config = load_config()
-            if not config:
+        while True:
+            state.config = load_config()
+
+            if not state.config:
                 api_key = get_api_key()
+                if not state.initialize(api_key):
+                    print("\nInvalid API key or connection error. Please try again.")
+                    continue
             else:
-                api_key = config['api_key']
-
-            lunch = LunchMoney(access_token=api_key)
-            if not verify_api_connection(lunch):
-                continue
+                if not state.initialize(state.config['api_key']):
+                    print("\nStored API key is invalid. Please enter a new one.")
+                    state.reset()
+                    continue
 
             try:
-                api_accounts = lunch.get_assets()
-            except Exception as e:
-                print(f"Error getting accounts: {e}")
+                state.api_accounts = state.lunch.get_assets()
+            except LunchMoneyError as e:
+                logger.error(f"Failed to get accounts: {e}")
+                print(f"\nAPI Error: {e}")
                 continue
 
             qfx_accounts = get_qfx_accounts(args.input_file)
             if not qfx_accounts:
-                print("No accounts found in QFX file")
-                sys.exit(1)
+                logger.error("No accounts found in QFX file")
+                graceful_exit(1)
 
-            # Handle account mapping...
-            if config:
-                new_accounts = check_new_accounts(qfx_accounts, config['account_mapping'])
+            if state.config:
+                new_accounts = check_new_accounts(qfx_accounts, state.config['account_mapping'])
                 if new_accounts:
-                    print(f"\nNew accounts found in QFX: {', '.join(new_accounts)}")
-                    config['account_mapping'].update(
-                        do_onboarding(lunch, [a for a in qfx_accounts if a.account_id in new_accounts], api_accounts)
+                    logger.info(f"New accounts found: {', '.join(new_accounts)}")
+                    state.config['account_mapping'].update(
+                        do_onboarding(state.lunch, [a for a in qfx_accounts if a.account_id in new_accounts], state.api_accounts)
                     )
-                    save_config(config)
+                    save_config(state.config)
             else:
-                config = {
+                state.config = {
                     'api_key': api_key,
-                    'account_mapping': do_onboarding(lunch, qfx_accounts, api_accounts)
+                    'account_mapping': do_onboarding(state.lunch, qfx_accounts, state.api_accounts)
                 }
-                save_config(config)
+                save_config(state.config)
 
-            # Transaction processing
             start_date = get_start_date()
             if start_date == 'exit':
                 graceful_exit()
             elif start_date == 'config':
-                if CONFIG_FILE.exists():
-                    CONFIG_FILE.unlink()
+                state.reset()
                 continue
 
-            # Process transactions...
-            transactions = format_transactions(qfx_accounts, config['account_mapping'], start_date)
+            # Process transactions
+            transactions = format_transactions(qfx_accounts, state.config['account_mapping'], start_date)
             if not transactions:
                 print("No transactions to import")
-                sys.exit(0)
+                graceful_exit()
 
-            display_transactions(transactions, api_accounts)
+            # Always display transactions and confirm
+            display_transactions(transactions, state.api_accounts)
             if not confirm_import():
                 print("Import cancelled")
-                sys.exit(0)
+                graceful_exit()
 
-            try:
-                result = lunch.insert_transactions(
-                    transactions=transactions,
-                    apply_rules=True,
-                    skip_duplicates=True,
-                    debit_as_negative=True,
-                    check_for_recurring=True,
-                    skip_balance_update=False
-                )
-                print(f"Successfully imported {len(result)} transactions")
-
-                # Update balances after import
-                update_account_balances(lunch, qfx_accounts, config['account_mapping'], api_accounts)
-                return  # Exit after successful import
-
-            except Exception as e:
-                print(f"Error importing transactions: {e}")
-                sys.exit(1)
-
-            # If we get here, we're reconfiguring
-            continue
+            if import_transactions(state.lunch, transactions):
+                update_account_balances(state.lunch, qfx_accounts, state.config['account_mapping'], state.api_accounts)
+                graceful_exit()
 
     except KeyboardInterrupt:
-        print("\nOperation cancelled by user")
+        logger.info("Operation cancelled by user")
         graceful_exit()
 
 if __name__ == "__main__":
