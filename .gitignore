@@ -7,7 +7,9 @@ Thumbs.db
 *.cer
 *.tfstate
 *.old
+old-*
 *.NO
 *.backup
 **/.vscode
 **temp_*
+*.qfx
