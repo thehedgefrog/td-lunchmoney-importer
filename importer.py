@@ -366,17 +366,28 @@ def cleanup() -> None:
     # Add cleanup operations if needed
     pass
 
+def get_qfx_path() -> str:
+    """Prompt for QFX file path"""
+    while True:
+        path = input("Enter path to QFX file: ").strip()
+        if path and Path(path).exists():
+            return path
+        print("File not found. Please enter a valid path.")
+
 def main() -> None:
-    """Main program flow with improved error handling"""
+    """Main program flow"""
     state = ConfigurationState()
 
     try:
         parser = argparse.ArgumentParser(description="Process QFX file and match accounts")
-        parser.add_argument("input_file", help="The QFX file to process")
+        parser.add_argument("input_file", nargs='?', help="The QFX file to process")
         args = parser.parse_args()
 
-        if not Path(args.input_file).exists():
-            logger.error(f"Input file not found: {args.input_file}")
+        # Get file path either from args or user input
+        qfx_path = args.input_file if args.input_file else get_qfx_path()
+
+        if not Path(qfx_path).exists():
+            logger.error(f"Input file not found: {qfx_path}")
             graceful_exit(1)
 
         while True:
@@ -400,7 +411,7 @@ def main() -> None:
                 print(f"\nAPI Error: {e}")
                 continue
 
-            qfx_accounts = get_qfx_accounts(args.input_file)
+            qfx_accounts = get_qfx_accounts(qfx_path)
             if not qfx_accounts:
                 logger.error("No accounts found in QFX file")
                 graceful_exit(1)
