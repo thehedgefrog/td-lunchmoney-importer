@@ -1,0 +1,13 @@
+*.DS_Store
+*.LSOverride
+Thumbs.db
+.bundle
+
+*.code-workspace
+*.cer
+*.tfstate
+*.old
+*.NO
+*.backup
+**/.vscode
+**temp_*
