@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from ofxparse import OfxParser
 from lunchable import LunchMoney, TransactionInsertObject
 from lunchable.exceptions import LunchMoneyError
+from io import StringIO
 
 # Constants
 CONFIG_FILE = Path.home() / ".lunchmoney" / ".lunchmoney_config.json"
@@ -94,11 +95,27 @@ def save_config(config: Dict[str, Any]) -> None:
 def get_qfx_accounts(qfx_file):
     """Parse QFX file and return accounts"""
     try:
-        with open(qfx_file) as fileobj:
+        # First try reading with UTF-8
+        with open(qfx_file, 'r', encoding='utf-8') as fileobj:
             ofx = OfxParser.parse(fileobj)
-        return ofx.accounts
+            return ofx.accounts
+    except UnicodeError:
+        try:
+            # If UTF-8 fails, try with cp1252 (Windows encoding)
+            with open(qfx_file, 'r', encoding='cp1252') as fileobj:
+                ofx = OfxParser.parse(fileobj)
+                return ofx.accounts
+        except Exception as e:
+            # If both fail, try to read and clean the file
+            with open(qfx_file, 'r', encoding='utf-8', errors='ignore') as fileobj:
+                content = fileobj.read()
+                # Remove or replace problematic characters
+                content = content.encode('cp1252', errors='ignore').decode('cp1252')
+                ofx = OfxParser.parse(StringIO(content))
+                return ofx.accounts
     except Exception as e:
         print(f"Error parsing QFX file: {e}")
+        logger.error(f"Error parsing QFX file: {e}")
         sys.exit(1)
 
 def verify_api_connection(lunch: LunchMoney) -> bool:
