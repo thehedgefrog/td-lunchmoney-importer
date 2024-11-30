@@ -39,7 +39,7 @@ jobs:
         pip install pyinstaller
 
     - name: Build with PyInstaller
-      uses: sayyid5416/pyinstaller@v1.6.1
+      uses: sayyid5416/pyinstaller@v1.8.0
       with:
         python_ver: '3.11'
         spec: 'importer.py'
