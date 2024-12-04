@@ -12,52 +12,30 @@
   ],
   "packageRules": [
     {
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ],
-      "matchDepTypes": [
-        "dependencies"
-      ],
+      "matchManagers": ["pip_requirements"],
+      "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
     },
     {
-      "matchManagers": [
-        "github-actions"
-      ],
+      "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "groupSlug": "github-actions",
-      "labels": [
-        "ci"
-      ],
+      "labels": ["ci"],
       "automerge": true,
-      "matchPackageNames": [
-        "/^actions//"
-      ]
+      "matchUpdateTypes": ["minor", "patch"]
     }
   ],
   "pip_requirements": {
-    "fileMatch": [
-      "requirements.txt"
-    ]
+    "fileMatch": ["requirements.txt"]
   },
   "github-actions": {
     "enabled": true,
-    "fileMatch": [
-      "^\\.github/workflows/[^/]+\\.ya?ml$"
-    ]
+    "fileMatch": ["^\\.github/workflows/[^/]+\\.ya?ml$"]
   },
-  "schedule": [
-    "after 1pm every weekday"
-  ],
-  "labels": [
-    "dependencies"
-  ],
+  "schedule": ["after 1pm every weekday"],
+  "labels": ["dependencies"],
   "commitMessagePrefix": "chore(deps):",
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
-  "enabledManagers": [
-    "pip_requirements",
-    "github-actions"
-  ]
+  "enabledManagers": ["pip_requirements", "github-actions"]
 }
