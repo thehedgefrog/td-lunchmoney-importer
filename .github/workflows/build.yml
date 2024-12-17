@@ -52,7 +52,7 @@ jobs:
         mv dist/td-lunchmoney-importer* releases/${{ matrix.asset_name }}
 
     - name: Upload to Release
-      uses: softprops/action-gh-release@v2.1.0
+      uses: softprops/action-gh-release@v2.2.0
       if: github.event_name == 'release'
       with:
         files: releases/${{ matrix.asset_name }}
@@ -60,7 +60,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload Artifact (for non-release builds)
-      uses: actions/upload-artifact@v4.4.3
+      uses: actions/upload-artifact@v4.5.0
       if: github.event_name != 'release'
       with:
         name: ${{ matrix.asset_name }}
