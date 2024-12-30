@@ -1,2 +1,2 @@
 ofxparse==0.21
-lunchable==1.4.1
+lunchable==1.4.2
