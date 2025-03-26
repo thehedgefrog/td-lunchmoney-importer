@@ -46,11 +46,18 @@ td-lunchmoney-importer path/to/file.qfx
    - Confirm import
    - Update balances if needed
 
-### Configuration
-Configuration is stored in `~/.lunchmoney/.lunchmoney_config.json` is a base64 encoded file containing:
+### Security
+TD Lunch Money Importer now stores your API key securely in your system's credentials store:
+- Windows: Windows Credential Manager
+- macOS: Keychain
+- Linux: Secret Service API/libsecret
 
-- API key
-- Account mappings
+Account mappings are stored separately in `~/.lunchmoney/config.json`.
+
+#### Log Files
+Log files are stored in `~/.lunchmoney/logs/importer.log` and rotated automatically:
+- Maximum size: 1MB per file
+- Keeps 5 most recent log files
 
 ### Dependencies
 - Python 3.9+
