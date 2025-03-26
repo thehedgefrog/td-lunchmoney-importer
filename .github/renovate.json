@@ -14,7 +14,8 @@
     {
       "matchManagers": ["pip_requirements"],
       "matchUpdateTypes": ["minor", "patch"],
-      "automerge": true
+      "automerge": true,
+      "ignoreTests": true
     },
     {
       "matchManagers": ["github-actions"],
@@ -22,6 +23,7 @@
       "groupSlug": "github-actions",
       "labels": ["ci"],
       "automerge": true,
+      "ignoreTests": true,
       "matchUpdateTypes": ["minor", "patch"]
     }
   ],
@@ -37,5 +39,6 @@
   "commitMessagePrefix": "chore(deps):",
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
+  "platformAutomerge": true,
   "enabledManagers": ["pip_requirements", "github-actions"]
 }
