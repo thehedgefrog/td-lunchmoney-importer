@@ -40,16 +40,27 @@ def get_user_info(lunch):
     """Get user information from Lunch Money API"""
     try:
         user = lunch.get_user()
-        # Access user properties
+        logger.info(f"API user response: {user}")
+
+        # Extract user name
         if hasattr(user, 'user_name'):
-            return user.user_name
+            user_name = user.user_name
         else:
-            # Log available attributes to help debug
             logger.info(f"Available user attributes: {dir(user)}")
-            return "Unknown"
+            user_name = "Unknown"
+
+        # Extract budget name from user object
+        if hasattr(user, 'budget_name'):
+            budget_name = user.budget_name
+        else:
+            logger.info(f"Budget name not found in user response")
+            budget_name = "Default Budget"
+
+        return user_name, budget_name
+
     except Exception as e:
         logger.error(f"Error retrieving user info: {e}")
-        return "Unknown"
+        return "Unknown", "Unknown"
 
 def validate_transactions(transactions: List[TransactionInsertObject]) -> bool:
     """Validate transactions before import"""

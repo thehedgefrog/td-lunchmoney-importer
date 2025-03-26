@@ -17,10 +17,11 @@ def display_welcome_header():
     print(f"{Fore.GREEN}{'=' * 30}{Style.RESET_ALL}\n")
 
 def display_user_info(lunch):
-    """Display user information"""
+    """Display user and budget information"""
     from .api import get_user_info  # Import here to avoid circular import
-    user_name = get_user_info(lunch)
-    print(f"Connected as: {Fore.CYAN}{user_name}{Style.RESET_ALL}\n")
+    user_name, budget_name = get_user_info(lunch)
+    print(f"Connected as: {Fore.CYAN}{user_name}{Style.RESET_ALL}")
+    print(f"Budget: {Fore.CYAN}{budget_name}{Style.RESET_ALL}\n")
 
 def get_validated_input(prompt, validator, error_msg):
     """Get user input with validation"""
