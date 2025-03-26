@@ -47,7 +47,7 @@ td-lunchmoney-importer path/to/file.qfx
    - Update balances if needed
 
 ### Security
-TD Lunch Money Importer now stores your API key securely in your system's credentials store:
+TD Lunch Money Importer stores your API key securely in your system's credentials store:
 - Windows: Windows Credential Manager
 - macOS: Keychain
 - Linux: Secret Service API/libsecret
