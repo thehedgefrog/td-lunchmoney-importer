@@ -94,7 +94,7 @@ def reset_api_key() -> None:
         return False
 
 def load_config() -> Optional[Dict[str, Any]]:
-    """Load configuration from file and keyring"""
+    """Load configuration from file and keyring with validation"""
     try:
         # Get API key from keyring
         api_key = get_saved_api_key()
@@ -103,6 +103,31 @@ def load_config() -> Optional[Dict[str, Any]]:
         if CONFIG_FILE.exists():
             with open(CONFIG_FILE, 'r') as f:
                 config = json.load(f)
+
+            # Validate config structure
+            if not isinstance(config, dict):
+                logger.error("Invalid configuration format: not a dictionary")
+                print_error("Configuration file is corrupted (invalid structure)")
+                return None
+
+            if 'account_mapping' not in config:
+                logger.warning("Missing account_mapping in config, creating empty mapping")
+                config['account_mapping'] = {}
+
+            # Validate account mapping is a dictionary
+            if not isinstance(config['account_mapping'], dict):
+                logger.error("Invalid account_mapping format")
+                print_error("Configuration file is corrupted (invalid mapping)")
+                return None
+
+            # Check all account IDs are strings
+            invalid_keys = [k for k in config['account_mapping'].keys() if not isinstance(k, str)]
+            if invalid_keys:
+                logger.warning(f"Invalid account keys found: {invalid_keys}, fixing")
+                # Convert keys to strings
+                config['account_mapping'] = {
+                    str(k): v for k, v in config['account_mapping'].items()
+                }
 
             # Merge with API key
             if api_key:
@@ -113,9 +138,15 @@ def load_config() -> Optional[Dict[str, Any]]:
         elif api_key:
             return {'api_key': api_key, 'account_mapping': {}}
 
-    except (json.JSONDecodeError, IOError) as e:
-        logger.error(f"Error loading config: {e}")
+    except json.JSONDecodeError as e:
+        logger.error(f"Error parsing config file: {e}")
         print_error(f"Configuration file is corrupted: {e}")
+    except IOError as e:
+        logger.error(f"Error accessing config file: {e}")
+        print_error(f"Could not access configuration file: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error loading config: {e}")
+        print_error(f"Error loading configuration: {e}")
 
     return None
 

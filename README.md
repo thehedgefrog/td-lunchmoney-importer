@@ -54,6 +54,11 @@ TD Lunch Money Importer now stores your API key securely in your system's creden
 
 Account mappings are stored separately in `~/.lunchmoney/config.json`.
 
+#### Log Files
+Log files are stored in `~/.lunchmoney/logs/importer.log` and rotated automatically:
+- Maximum size: 1MB per file
+- Keeps 5 most recent log files
+
 ### Dependencies
 - Python 3.9+
 - ofxparse

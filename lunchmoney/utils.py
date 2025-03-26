@@ -3,7 +3,9 @@ Utility functions for TD Lunch Money Importer
 """
 import sys
 import logging
+import logging.handlers
 from datetime import datetime
+from pathlib import Path
 from colorama import Fore, Style
 
 # Configure logger
@@ -34,24 +36,35 @@ def print_success(text):
     print(f"{Fore.GREEN}✓ {text}{Style.RESET_ALL}")
 
 def setup_logging():
-    """Set up logging configuration"""
-    from pathlib import Path
+    """Set up logging with rotation"""
+    import logging.handlers
 
     # Constants
     LOG_DIR = Path.home() / ".lunchmoney" / "logs"
-    LOG_FILE = LOG_DIR / f"importer-{datetime.now().strftime('%Y%m%d')}.log"
+    LOG_FILE = LOG_DIR / "importer.log"
 
     # Create log directory if it doesn't exist
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Configure logging - file only, no console output
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(LOG_FILE)
-        ]
+    # Configure rotating file handler (5 files, 1MB each)
+    handler = logging.handlers.RotatingFileHandler(
+        LOG_FILE, maxBytes=1_000_000, backupCount=5
     )
 
-    logger.info(f"Starting importer - Log file: {LOG_FILE}")
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+
+    # Get root logger and configure
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
+    # Remove any existing handlers to prevent duplicates
+    for hdlr in root_logger.handlers[:]:
+        root_logger.removeHandler(hdlr)
+
+    root_logger.addHandler(handler)
+
+    logger.info("Starting importer")
+    logger.info(f"Log files will rotate at 1MB, keeping 5 backups at {LOG_FILE}")
+
     return LOG_FILE
