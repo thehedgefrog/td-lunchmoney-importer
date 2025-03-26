@@ -11,6 +11,7 @@ from ofxparse import OfxParser
 from lunchable import LunchMoney, TransactionInsertObject
 from lunchable.exceptions import LunchMoneyError
 from io import StringIO
+from colorama import Fore, Style, init
 
 # Constants
 CONFIG_FILE = Path.home() / ".lunchmoney" / ".lunchmoney_config.json"

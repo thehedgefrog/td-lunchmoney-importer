@@ -56,6 +56,7 @@ Configuration is stored in `~/.lunchmoney/.lunchmoney_config.json` is a base64 e
 - Python 3.9+
 - ofxparse
 - lunchable
+- colorama
 
 ### Contributing
 1. Fork the repository
