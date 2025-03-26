@@ -1,2 +1,3 @@
 ofxparse==0.21
 lunchable==1.4.2
+colorama==0.4.6
