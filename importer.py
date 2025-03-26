@@ -13,13 +13,13 @@ from lunchmoney import (
     # Setup
     setup_logging, display_welcome_header,
     # Configuration
-    ConfigurationState, load_config, get_api_key, save_config,
+    ConfigurationState, load_config, get_api_key, save_config, reset_api_key,  # Include it here
     # QFX Processing
     get_qfx_accounts, format_transactions, check_new_accounts,
     # UI
     display_user_info, display_menu, print_success, print_error,
     show_progress, do_onboarding, confirm_import, get_qfx_path,
-    display_transactions, get_start_date,  # Added get_start_date here
+    display_transactions, get_start_date,
     # API operations
     import_transactions, update_account_balances,
     # Utilities
@@ -96,7 +96,24 @@ def main() -> None:
             if start_date == 'exit':
                 graceful_exit()
             elif start_date == 'config':
-                state.reset()
+                # Keep API key, but reset account mappings
+                state.reset(keep_api_key=True)
+                continue
+            elif start_date == 'api_key':
+                # Only reset API key and request a new one
+                reset_api_key()
+                api_key = get_api_key()
+                if not state.initialize(api_key):
+                    print("\nInvalid API key or connection error. Please try again.")
+                else:
+                    # Save the new API key with existing account mappings
+                    state.config['api_key'] = api_key
+                    save_config(state.config)
+                    print_success("API key updated successfully")
+                continue
+            elif start_date == 'reset':
+                # Reset everything
+                state.reset(keep_api_key=False)
                 continue
 
             # Process transactions

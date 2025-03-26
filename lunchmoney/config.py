@@ -30,10 +30,19 @@ class ConfigurationState:
         self.lunch: Optional[LunchMoney] = None
         self.api_accounts: List[Any] = []
 
-    def reset(self) -> None:
-        """Reset configuration state"""
+    def reset(self, keep_api_key=False) -> None:
+        """Reset configuration state
+
+        Args:
+            keep_api_key: If False, also remove API key from keyring
+        """
         if CONFIG_FILE.exists():
             CONFIG_FILE.unlink()
+
+        # Remove API key from keyring if requested
+        if not keep_api_key:
+            reset_api_key()
+
         self.config = None
         self.lunch = None
         self.api_accounts = []
@@ -73,6 +82,16 @@ def get_saved_api_key() -> Optional[str]:
     except Exception as e:
         logger.error(f"Failed to retrieve API key from keyring: {e}")
         return None
+
+def reset_api_key() -> None:
+    """Remove API key from keyring"""
+    try:
+        keyring.delete_password(APP_NAME, KEYRING_USERNAME)
+        logger.info("API key removed from system keyring")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to remove API key from keyring: {e}")
+        return False
 
 def load_config() -> Optional[Dict[str, Any]]:
     """Load configuration from file and keyring"""

@@ -125,11 +125,13 @@ def get_start_date():
         option_map = display_menu({
             "date": "Import transactions after specific date (YYYY-MM-DD)",
             "all": "Import all transactions",
-            "config": "Reconfigure API key and accounts",
+            "api_key": "Change API key only",
+            "config": "Reconfigure accounts",
+            "reset": "Reset all configuration",
             "exit": "Quit the program"
         })
 
-        choice = input("\nEnter option (1-4): ").strip().lower()
+        choice = input("\nEnter option (1-6): ").strip().lower()
 
         # Check if user entered a number
         if choice in option_map:
@@ -139,6 +141,10 @@ def get_start_date():
             return 'exit'
         elif choice == 'config':
             return 'config'
+        elif choice == 'api_key':
+            return 'api_key'
+        elif choice == 'reset':
+            return 'reset'
         elif choice == 'all':
             return None
         elif choice == 'date':
