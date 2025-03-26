@@ -34,9 +34,6 @@ logger = logging.getLogger(__name__)
 # Log startup
 logger.info(f"Starting importer - Log file: {LOG_FILE}")
 
-# Constants
-CONFIG_FILE = Path.home() / ".lunchmoney" / ".lunchmoney_config.json"
-
 class ConfigurationState:
     """Manage application configuration state"""
     def __init__(self):
