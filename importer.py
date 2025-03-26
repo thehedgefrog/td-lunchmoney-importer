@@ -12,9 +12,12 @@ from lunchable import LunchMoney, TransactionInsertObject
 from lunchable.exceptions import LunchMoneyError
 from io import StringIO
 from colorama import Fore, Style, init
+import keyring
 
 # Constants
-CONFIG_FILE = Path.home() / ".lunchmoney" / ".lunchmoney_config.json"
+APP_NAME = "td-lunchmoney-importer"
+KEYRING_USERNAME = "lunchmoney_api"
+CONFIG_FILE = Path.home() / ".lunchmoney" / "config.json"
 LOG_DIR = Path.home() / ".lunchmoney" / "logs"
 LOG_FILE = LOG_DIR / f"importer-{datetime.now().strftime('%Y%m%d')}.log"
 
@@ -66,28 +69,66 @@ def get_api_key() -> str:
             return key
         logger.warning("API key cannot be empty")
 
-def load_config() -> Optional[Dict[str, Any]]:
-    """Load and decode existing config"""
+def save_api_key(api_key: str) -> None:
+    """Save API key securely to system keyring"""
     try:
+        keyring.set_password(APP_NAME, KEYRING_USERNAME, api_key)
+        logger.info("API key saved to system keyring")
+    except Exception as e:
+        logger.error(f"Failed to save API key to keyring: {e}")
+        print_error("Could not securely store API key")
+        graceful_exit(1)
+
+def get_saved_api_key() -> Optional[str]:
+    """Retrieve API key from system keyring"""
+    try:
+        return keyring.get_password(APP_NAME, KEYRING_USERNAME)
+    except Exception as e:
+        logger.error(f"Failed to retrieve API key from keyring: {e}")
+        return None
+
+def load_config() -> Optional[Dict[str, Any]]:
+    """Load configuration from file and keyring"""
+    try:
+        # Get API key from keyring
+        api_key = get_saved_api_key()
+
+        # Get account mappings from file
         if CONFIG_FILE.exists():
             with open(CONFIG_FILE, 'r') as f:
-                encoded_data = f.read().strip()
-                json_str = base64.b64decode(encoded_data).decode('utf-8')
-                return json.loads(json_str)
-    except (json.JSONDecodeError, IOError, base64.binascii.Error) as e:
+                config = json.load(f)
+
+            # Merge with API key
+            if api_key:
+                config['api_key'] = api_key
+                return config
+
+        # If we have an API key but no config file, start with API key only
+        elif api_key:
+            return {'api_key': api_key, 'account_mapping': {}}
+
+    except (json.JSONDecodeError, IOError) as e:
         logger.error(f"Error loading config: {e}")
+        print_error(f"Configuration file is corrupted: {e}")
+
     return None
 
 def save_config(config: Dict[str, Any]) -> None:
-    """Encode and save config"""
+    """Save account mappings to file and API key to keyring"""
     try:
+        # Save API key to keyring
+        if 'api_key' in config:
+            save_api_key(config['api_key'])
+
+        # Save account mappings to file
         CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        json_str = json.dumps(config)
-        encoded_data = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
+        file_config = {'account_mapping': config.get('account_mapping', {})}
         with open(CONFIG_FILE, 'w') as f:
-            f.write(encoded_data)
+            json.dump(file_config, f)
+
     except (IOError, TypeError) as e:
         logger.error(f"Error saving config: {e}")
+        print_error(f"Failed to save configuration: {e}")
         graceful_exit(1)
 
 def get_qfx_accounts(qfx_file):
@@ -105,16 +146,25 @@ def get_qfx_accounts(qfx_file):
                 return ofx.accounts
         except Exception as e:
             # If both fail, try to read and clean the file
-            with open(qfx_file, 'r', encoding='utf-8', errors='ignore') as fileobj:
-                content = fileobj.read()
-                # Remove or replace problematic characters
-                content = content.encode('cp1252', errors='ignore').decode('cp1252')
-                ofx = OfxParser.parse(StringIO(content))
-                return ofx.accounts
+            try:
+                with open(qfx_file, 'r', encoding='utf-8', errors='ignore') as fileobj:
+                    content = fileobj.read()
+                    # Remove or replace problematic characters
+                    content = content.encode('cp1252', errors='ignore').decode('cp1252')
+                    ofx = OfxParser.parse(StringIO(content))
+                    return ofx.accounts
+            except Exception as parsing_error:
+                logger.error(f"Failed to parse QFX after multiple attempts: {parsing_error}")
+                print_error(f"Could not parse QFX file: {parsing_error}")
+                graceful_exit(1)
+    except FileNotFoundError:
+        logger.error(f"QFX file not found: {qfx_file}")
+        print_error(f"File not found: {qfx_file}")
+        graceful_exit(1)
     except Exception as e:
-        print(f"Error parsing QFX file: {e}")
         logger.error(f"Error parsing QFX file: {e}")
-        sys.exit(1)
+        print_error(f"Error parsing QFX file: {e}")
+        graceful_exit(1)
 
 def verify_api_connection(lunch: LunchMoney) -> bool:
     """Verify API connection"""
@@ -409,8 +459,13 @@ def import_transactions(lunch: LunchMoney, transactions: List[TransactionInsertO
 
 def cleanup() -> None:
     """Cleanup resources"""
-    # Add cleanup operations if needed
-    pass
+    # Flush any open file handles and logging buffers
+    try:
+        # Shutdown logging
+        logging.shutdown()
+    except Exception as e:
+        # Don't raise errors during cleanup
+        pass
 
 def get_qfx_path() -> str:
     """Prompt for QFX file path"""
