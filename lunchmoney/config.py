@@ -83,7 +83,7 @@ def get_saved_api_key() -> Optional[str]:
         logger.error(f"Failed to retrieve API key from keyring: {e}")
         return None
 
-def reset_api_key() -> None:
+def reset_api_key() -> bool:
     """Remove API key from keyring"""
     try:
         keyring.delete_password(APP_NAME, KEYRING_USERNAME)
