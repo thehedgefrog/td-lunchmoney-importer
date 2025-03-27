@@ -10,8 +10,9 @@ permissions:
 
 jobs:
   check_pr:
+    environment: test-auto-releases
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'dependencies')
+    if: github.ref == 'refs/heads/automate-dep-releases' && github.event_name == 'pull_request' && github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'dependencies')
     outputs:
       should_release: ${{ steps.check.outputs.should_release }}
       new_version: ${{ steps.bump.outputs.new_version }}
