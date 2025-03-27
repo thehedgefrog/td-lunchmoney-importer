@@ -9,7 +9,67 @@ permissions:
   contents: write
 
 jobs:
+  check_pr:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'dependencies')
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      new_version: ${{ steps.bump.outputs.new_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if we should create a release
+        id: check
+        run: |
+          echo "should_release=true" >> $GITHUB_OUTPUT
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          # Determine current version from pyproject.toml or similar
+          CURRENT_VERSION=$(grep -o "__version__ = \"[0-9.]*\"" lunchmoney/__init__.py | cut -d'"' -f2)
+
+          # For dependency updates, bump patch version
+          IFS='.' read -r -a version_parts <<< "$CURRENT_VERSION"
+          PATCH=$((version_parts[2] + 1))
+          NEW_VERSION="${version_parts[0]}.${version_parts[1]}.$PATCH"
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update version in files
+        if: steps.check.outputs.should_release == 'true'
+        run: |
+          sed -i "s/__version__ = \"${{ steps.bump.outputs.current_version }}\"/__version__ = \"${{ steps.bump.outputs.new_version }}\"/" lunchmoney/__init__.py
+
+      - name: Commit version bump
+        if: steps.check.outputs.should_release == 'true'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: bump version to ${{ steps.bump.outputs.new_version }}"
+          file_pattern: lunchmoney/__init__.py
+
+      - name: Create Release
+        if: steps.check.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.bump.outputs.new_version }}
+          name: Release v${{ steps.bump.outputs.new_version }}
+          body: |
+            Automated release for dependency updates:
+            ${{ github.event.pull_request.title }}
+
+            ${{ github.event.pull_request.body }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    needs: [check_pr]
+    if: github.event_name == 'release' || (github.event_name == 'pull_request' && needs.check_pr.outputs.should_release == 'true')
     name: Build ${{ matrix.os }} binary
     runs-on: ${{ matrix.os }}
     strategy:
