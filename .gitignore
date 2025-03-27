@@ -14,3 +14,5 @@ debug-*
 **/.vscode
 **temp_*
 *.qfx
+
+**/__pycache__
