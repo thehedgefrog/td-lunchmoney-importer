@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   check_pr:
-    environment: test-auto-releases
+    environment: test-auto-releases # TEST ONLY - REMOVE FOR PRODUCTION # test2
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/automate-dep-releases' && github.event_name == 'pull_request' && github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'dependencies')
     outputs:
