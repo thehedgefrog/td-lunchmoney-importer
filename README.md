@@ -23,9 +23,9 @@ Import TD Canada Trust QFX files into [Lunch Money](https://lunchmoney.app).
 
 ### From Releases
 Download the latest release for your platform:
-- Windows (x64)
-- macOS (ARM64)
-- Linux (x64)
+- [Windows (x64)](https://github.com/thehedgefrog/td-lunchmoney-importer/releases/latest/download/td-lunchmoney-importer-windows-x64.exe)
+- [macOS (Apple Silicon - ARM64)](https://github.com/thehedgefrog/td-lunchmoney-importer/releases/latest/download/td-lunchmoney-importer-macos-arm64)
+- [Linux (x64)](https://github.com/thehedgefrog/td-lunchmoney-importer/releases/latest/download/td-lunchmoney-importer-linux-x64)
 
 ### From Source
 Read the Usage instructions and then [install from source](#using-from-source).
@@ -37,7 +37,7 @@ Read the Usage instructions and then [install from source](#using-from-source).
    1. On the GUI, launch the executable and type the path to your QFX file. Alternatively, you can drag and drop your QFX file on the executable.
    2. From the command line, make the binary executable and launch it with a path to your QFX file:
       ```
-      td-lunchmoney-importer path/to/file.qfx
+      ./td-lunchmoney-importer path/to/file.qfx
       ```
 
 4. On first run:
