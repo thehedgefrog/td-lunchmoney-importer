@@ -24,7 +24,7 @@ jobs:
             asset_name: td-lunchmoney-importer-linux-x64
 
     steps:
-    - uses: actions/checkout@v4.3.0
+    - uses: actions/checkout@v5.0.0
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5.6.0
