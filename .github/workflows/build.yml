@@ -29,7 +29,7 @@ jobs:
     - name: Set up Python 3.11
       uses: actions/setup-python@v6.0.0
       with:
-        python-version: '3.13'
+        python-version: '3.14'
         cache: 'pip'
 
     - name: Install dependencies
@@ -52,7 +52,7 @@ jobs:
         mv dist/td-lunchmoney-importer* releases/${{ matrix.asset_name }}
 
     - name: Upload to Release
-      uses: softprops/action-gh-release@v2.3.4
+      uses: softprops/action-gh-release@v2.4.0
       if: github.event_name == 'release'
       with:
         files: releases/${{ matrix.asset_name }}
