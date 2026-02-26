@@ -101,18 +101,6 @@ python -m unittest discover -s tests -p "test_*.py" -v
 - Release builds run pre-release checks first and only publish binaries if checks pass.
 - Version tags must match `lunchmoney.__version__` (for example: tag `v1.0.0` requires `__version__ = "1.0.0"`).
 
-### Branch Protection Checklist
-In GitHub repository settings, configure branch protection for `main` with:
-- Require a pull request before merging
-- Require status checks to pass before merging
-- Required checks:
-   - `Test (Python 3.9)`
-   - `Test (Python 3.11)`
-   - `Build Smoke (windows-latest)`
-   - `Build Smoke (macos-latest)`
-   - `Build Smoke (ubuntu-latest)`
-- Require branches to be up to date before merging
-
 ### Release Checklist
 - Update version in `lunchmoney/__init__.py` (`__version__ = "X.Y.Z"`)
 - Ensure CI is green on `main`
