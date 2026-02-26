@@ -1,6 +1,7 @@
 # TD -> Lunch Money Importer
 
 [![Build Status](https://github.com/thehedgefrog/td-lunchmoney-importer/actions/workflows/build.yml/badge.svg)](https://github.com/thehedgefrog/td-lunchmoney-importer/actions/workflows/build.yml)
+[![CI Status](https://github.com/thehedgefrog/td-lunchmoney-importer/actions/workflows/ci.yml/badge.svg)](https://github.com/thehedgefrog/td-lunchmoney-importer/actions/workflows/ci.yml)
 [![Latest Release](https://img.shields.io/github/v/release/thehedgefrog/td-lunchmoney-importer)](https://github.com/thehedgefrog/td-lunchmoney-importer/releases/latest)
 
 Import TD Canada Trust QFX files into [Lunch Money](https://lunchmoney.app).
@@ -88,6 +89,39 @@ pip install -r requirements.txt
 python importer.py myfile.qfx
 ```
 Where `myfile.qfx` is the path to a valid QFX.
+
+### Running Tests
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+### CI and Release Gates
+- Pull requests and pushes to `main` run CI on Python 3.9 and 3.11.
+- CI runs compile/import smoke checks and unit tests.
+- Release builds run pre-release checks first and only publish binaries if checks pass.
+- Version tags must match `lunchmoney.__version__` (for example: tag `v1.0.0` requires `__version__ = "1.0.0"`).
+
+### Branch Protection Checklist
+In GitHub repository settings, configure branch protection for `main` with:
+- Require a pull request before merging
+- Require status checks to pass before merging
+- Required checks:
+   - `Test (Python 3.9)`
+   - `Test (Python 3.11)`
+   - `Build Smoke (windows-latest)`
+   - `Build Smoke (macos-latest)`
+   - `Build Smoke (ubuntu-latest)`
+- Require branches to be up to date before merging
+
+### Release Checklist
+- Update version in `lunchmoney/__init__.py` (`__version__ = "X.Y.Z"`)
+- Ensure CI is green on `main`
+- Create and push tag `vX.Y.Z`
+- Create GitHub Release from tag `vX.Y.Z`
+- Verify build workflow publishes 3 assets:
+   - Windows x64 `.exe`
+   - macOS ARM64 binary
+   - Linux x64 binary
 
 ### Contributing
 1. Fork the repository

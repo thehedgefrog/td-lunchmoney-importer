@@ -15,7 +15,7 @@
       "matchManagers": ["pip_requirements"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true,
-      "ignoreTests": true
+      "ignoreTests": false
     },
     {
       "matchManagers": ["github-actions"],
@@ -23,7 +23,7 @@
       "groupSlug": "github-actions",
       "labels": ["ci"],
       "automerge": true,
-      "ignoreTests": true,
+      "ignoreTests": false,
       "matchUpdateTypes": ["minor", "patch"]
     }
   ],
