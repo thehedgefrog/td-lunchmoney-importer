@@ -25,6 +25,12 @@
       "automerge": true,
       "ignoreTests": false,
       "matchUpdateTypes": ["minor", "patch"]
+    },
+    {
+      "description": "Keep setup-python runtime versions pinned in workflows",
+      "matchManagers": ["github-actions"],
+      "matchDepNames": ["python"],
+      "enabled": false
     }
   ],
   "pip_requirements": {

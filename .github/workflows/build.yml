@@ -13,15 +13,19 @@ permissions:
 
 jobs:
   checks:
-    name: Pre-release checks
+    name: Pre-release checks (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.11']
     steps:
     - uses: actions/checkout@v6.0.2
 
-    - name: Set up Python 3.11
+    - name: Set up Python
       uses: actions/setup-python@v6.2.0
       with:
-        python-version: '3.14'
+        python-version: ${{ matrix.python-version }}
         cache: 'pip'
 
     - name: Install dependencies
@@ -82,7 +86,7 @@ jobs:
     - name: Set up Python 3.11
       uses: actions/setup-python@v6.2.0
       with:
-        python-version: '3.14'
+        python-version: '3.11'
         cache: 'pip'
 
     - name: Install dependencies
