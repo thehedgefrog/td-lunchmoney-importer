@@ -1,7 +1,7 @@
 """
 TD Lunch Money Importer Package
 """
-__version__ = "v2.0.0-beta.1"
+__version__ = "2.0.0-beta.1"
 
 # Common functions
 from .common import print_success, print_error, print_header, show_progress
