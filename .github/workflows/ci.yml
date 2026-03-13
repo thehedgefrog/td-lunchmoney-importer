@@ -34,7 +34,7 @@ jobs:
 
     - name: Compile smoke check
       run: |
-        python -m py_compile importer.py lunchmoney/*.py
+        python -m py_compile importer.py lunchmoney/*.py lunchmoney/gui/*.py
 
     - name: Import smoke check
       run: |
@@ -51,7 +51,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            pyinstaller_icon_opt: '--icon "resources/lmfinal-32.ico"'
+            pyinstaller_data_opt: '--add-data "resources;resources"'
+          - os: ubuntu-latest
+            pyinstaller_icon_opt: ''
+            pyinstaller_data_opt: '--add-data "resources:resources"'
 
     steps:
     - uses: actions/checkout@v6.0.2
@@ -73,7 +80,7 @@ jobs:
         python_ver: '3.11'
         spec: 'importer.py'
         requirements: 'requirements.txt'
-        options: --onefile --name "td-lunchmoney-importer"
+        options: --onefile --windowed --copy-metadata lunchable ${{ matrix.pyinstaller_data_opt }} ${{ matrix.pyinstaller_icon_opt }} --name "td-lunchmoney-importer"
 
     - name: Upload smoke artifact
       uses: actions/upload-artifact@v7.0.0

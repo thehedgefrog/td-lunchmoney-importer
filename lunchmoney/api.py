@@ -11,20 +11,13 @@ from lunchable.exceptions import LunchMoneyError
 from .common import print_success, print_error
 
 logger = logging.getLogger(__name__)
-
 @dataclass
-class TransactionObject:
-    """Base class for transactions"""
-    date: str
-    amount: str
-    payee: str
-    asset_id: int
-    status: str = "cleared"
-    external_id: Optional[str] = None
-    currency: Optional[str] = None
-    category_id: Optional[int] = None
-    notes: Optional[str] = None
-    tags: Optional[list] = None
+class ImportResult:
+    """Structured import outcome for CLI and GUI flows."""
+
+    success: bool
+    imported_count: int = 0
+    message_lines: Optional[List[str]] = None
 
 def verify_api_connection(lunch: LunchMoney) -> bool:
     """Verify API connection"""
@@ -74,11 +67,11 @@ def validate_transactions(transactions: List[TransactionInsertObject]) -> bool:
             return False
     return True
 
-def import_transactions(lunch: LunchMoney, transactions: List[TransactionInsertObject]) -> bool:
-    """Import transactions with proper error handling"""
+def import_transactions(lunch: LunchMoney, transactions: List[TransactionInsertObject]) -> ImportResult:
+    """Import transactions with proper error handling."""
     try:
         if not validate_transactions(transactions):
-            return False
+            return ImportResult(success=False, message_lines=["No valid transactions to import."])
 
         result = lunch.insert_transactions(
             transactions=transactions,
@@ -94,26 +87,31 @@ def import_transactions(lunch: LunchMoney, transactions: List[TransactionInsertO
 
         # User feedback
         if len(result) == 0:
-            print("\nNo new transactions imported.")
-            print("Note: This usually means all transactions already exist in Lunch Money")
-            print("(Duplicate detection is based on transaction external ID)")
-        else:
-            print(f"\nSuccessfully imported {len(result)} transactions")
+            message_lines = [
+                "No new transactions imported.",
+                "Note: This usually means all transactions already exist in Lunch Money",
+                "(Duplicate detection is based on transaction external ID)",
+            ]
+            for line in message_lines:
+                print(f"\n{line}" if line == message_lines[0] else line)
+            return ImportResult(success=True, imported_count=0, message_lines=message_lines)
 
-        return True
+        success_line = f"Successfully imported {len(result)} transactions"
+        print(f"\n{success_line}")
+        return ImportResult(success=True, imported_count=len(result), message_lines=[success_line])
 
     except LunchMoneyError as e:
         logger.error(f"API error during import: {e}")
         print(f"Error importing transactions: {e}")
-        return False
+        return ImportResult(success=False, message_lines=[f"Error importing transactions: {e}"])
     except ValueError as e:
         logger.error(f"Data validation error: {e}")
         print(f"Error validating transactions: {e}")
-        return False
+        return ImportResult(success=False, message_lines=[f"Error validating transactions: {e}"])
     except Exception as e:
         logger.error(f"Unexpected error during import: {e}")
         print(f"Unexpected error: {e}")
-        return False
+        return ImportResult(success=False, message_lines=[f"Unexpected error: {e}"])
 
 def update_account_balances(lunch, qfx_accounts, account_mapping, api_accounts=None):
     """Update account balances from QFX data"""

@@ -15,5 +15,7 @@ debug-*
 **temp_*
 *.qfx
 .venv/
+build/
+dist/
 
 **/__pycache__

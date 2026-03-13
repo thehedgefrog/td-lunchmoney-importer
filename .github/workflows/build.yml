@@ -1,4 +1,4 @@
-name: Build Executables
+name: build
 
 on:
   release:
@@ -35,7 +35,7 @@ jobs:
 
     - name: Run test suite
       run: |
-        python -m py_compile importer.py lunchmoney/*.py
+        python -m py_compile importer.py lunchmoney/*.py lunchmoney/gui/*.py
         python -m unittest discover -s tests -p "test_*.py" -v
 
     - name: Validate release version tag
@@ -71,14 +71,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest]
         include:
           - os: windows-latest
             asset_name: td-lunchmoney-importer-windows-x64.exe
-          - os: macos-latest
-            asset_name: td-lunchmoney-importer-macos-arm64
+            pyinstaller_icon_opt: '--icon "resources/lmfinal-32.ico"'
+            pyinstaller_data_opt: '--add-data "resources;resources"'
           - os: ubuntu-latest
             asset_name: td-lunchmoney-importer-linux-x64
+            pyinstaller_icon_opt: ''
+            pyinstaller_data_opt: '--add-data "resources:resources"'
 
     steps:
     - uses: actions/checkout@v6.0.2
@@ -101,7 +103,7 @@ jobs:
         python_ver: '3.11'
         spec: 'importer.py'
         requirements: 'requirements.txt'
-        options: --onefile --name "td-lunchmoney-importer"
+        options: --onefile --windowed --copy-metadata lunchable ${{ matrix.pyinstaller_data_opt }} ${{ matrix.pyinstaller_icon_opt }} --name "td-lunchmoney-importer"
 
     - name: Prepare Release Asset
       run: |

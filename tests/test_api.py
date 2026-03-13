@@ -30,7 +30,8 @@ class TestApiTransactions(unittest.TestCase):
 
         result = import_transactions(lunch, txns)
 
-        self.assertTrue(result)
+        self.assertTrue(result.success)
+        self.assertEqual(result.imported_count, 1)
         lunch.insert_transactions.assert_called_once_with(
             transactions=txns,
             apply_rules=True,
@@ -45,7 +46,7 @@ class TestApiTransactions(unittest.TestCase):
         with patch("lunchmoney.api.validate_transactions", return_value=False):
             result = import_transactions(lunch, [self.make_txn()])
 
-        self.assertFalse(result)
+        self.assertFalse(result.success)
         lunch.insert_transactions.assert_not_called()
 
     def test_import_transactions_handles_lunchmoney_error(self):
@@ -54,7 +55,7 @@ class TestApiTransactions(unittest.TestCase):
 
         result = import_transactions(lunch, [self.make_txn()])
 
-        self.assertFalse(result)
+        self.assertFalse(result.success)
 
 
 if __name__ == "__main__":

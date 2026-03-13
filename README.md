@@ -1,3 +1,5 @@
+<img src="resources/icon.png" alt="TD Lunch Money Importer" width="150" height="150">
+
 # TD -> Lunch Money Importer
 
 [![Build Status](https://github.com/thehedgefrog/td-lunchmoney-importer/actions/workflows/build.yml/badge.svg)](https://github.com/thehedgefrog/td-lunchmoney-importer/actions/workflows/build.yml)
@@ -6,49 +8,115 @@
 
 Import TD Canada Trust QFX files into [Lunch Money](https://lunchmoney.app).
 
+![Main Window](resources/GUI_mainscreen.png)
+
+### What's New in v2.0
+
+- GUI-first experience
+- Optional CLI mode via `--cli`
+- Multi-file QFX import queue with drag-and-drop
+- Account mapping wizard
+- Transaction preview table before import
+- Optional date filtering
+- Optional post-import account balance updates
+- In-app activity log panel
+
 ## Features
 
-- Import transactions from TD QFX files (including those with multiple accounts)
-- Match TD accounts to Lunch Money accounts
-- Filter transactions by date
-- Update account balances
-- Persistent configuration
-- Duplicate detection
-
-### Screenshots
-![Main](resources/main.png)
-![Import](resources/import.png)
-![Balance](resources/balance.png)
+- Import one or more TD QFX files
+- Handle files containing multiple accounts
+- Map TD accounts to Lunch Money assets
+- Detect and support newly seen accounts
+- Preview transaction count and totals before import
+- Duplicate handling via Lunch Money API response
+- Save API key securely in system credential storage
+- Persist account mappings between runs
 
 ## Installation
 
 ### From Releases
+
 Download the latest release for your platform:
-- [Windows (x64)](https://github.com/thehedgefrog/td-lunchmoney-importer/releases/latest/download/td-lunchmoney-importer-windows-x64.exe)
-- [macOS (Apple Silicon - ARM64)](https://github.com/thehedgefrog/td-lunchmoney-importer/releases/latest/download/td-lunchmoney-importer-macos-arm64)
-- [Linux (x64)](https://github.com/thehedgefrog/td-lunchmoney-importer/releases/latest/download/td-lunchmoney-importer-linux-x64)
+
+- Windows (x64): https://github.com/thehedgefrog/td-lunchmoney-importer/releases/latest/download/td-lunchmoney-importer-windows-x64.exe
+- Linux (x64): https://github.com/thehedgefrog/td-lunchmoney-importer/releases/latest/download/td-lunchmoney-importer-linux-x64
+
+#### macOS (Run from Source)
+
+Due to Apple restrictions around non-paid developer accounts, there is currently no pre-built macOS executable. Macs are supported, both on Apple Silicon and Intel, if the app is run from source. To run on macOS, use the following steps:
+
+```bash
+git clone https://github.com/thehedgefrog/td-lunchmoney-importer.git
+cd td-lunchmoney-importer
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python importer.py
+```
+
+You can launch the GUI or use CLI mode as described below. All features are available when running from source on macOS.
 
 ### From Source
-Read the Usage instructions and then [install from source](#using-from-source).
+
+```bash
+git clone https://github.com/thehedgefrog/td-lunchmoney-importer.git
+cd td-lunchmoney-importer
+pip install -r requirements.txt
+```
 
 ## Usage
-1. Get your Lunch Money API key from [Developer Settings](https://my.lunchmoney.app/developers)
-2. [Get your QFX file](#downloading-td-qfx-files) from TD.
-3. Run the importer:
-   1. On the GUI, launch the executable and type the path to your QFX file. Alternatively, you can drag and drop your QFX file on the executable.
-   2. From the command line, make the binary executable and launch it with a path to your QFX file:
-      ```
-      ./td-lunchmoney-importer path/to/file.qfx
-      ```
 
-4. On first run:
-   - Enter your API key
-   - Match your TD accounts to Lunch Money accounts
-5. For subsequent runs:
-   - Choose date filter (optional)
-   - Review transactions
-   - Confirm import
-   - Update balances if needed
+
+### Default (GUI)
+- **Windows/Linux:** Launch the executable, or drag and drop a QFX file onto it to load automatically at startup.
+- **macOS:** Run `python importer.py` from the project directory (see above for setup). You can also pass QFX files as arguments.
+
+Run without flags to launch the GUI:
+
+```bash
+python importer.py
+```
+
+You can also pass one or more QFX files directly:
+
+```bash
+python importer.py /path/to/file1.qfx /path/to/file2.qfx
+```
+
+
+### CLI Mode (forced)
+
+Use --cli to run the terminal flow explicitly:
+
+```bash
+python importer.py --cli
+```
+
+Or provide a file:
+
+```bash
+python importer.py --cli /path/to/file.qfx
+```
+
+
+## Workflow
+
+1. Connect with your Lunch Money API key (stored securely)
+2. Add QFX files (file picker or drag-and-drop)
+3. Confirm or edit account mappings
+4. Optionally set a date filter (or import all transactions)
+5. Review preview table and totals
+6. Click Import Transactions
+7. Optionally update balances after import
+
+### CLI Workflow
+
+1. Start with --cli (with or without a QFX path)
+2. Enter API key if needed
+3. Complete account mapping if prompted
+4. Choose date filtering options
+5. Review transactions in terminal
+6. Confirm import
 
 ### Downloading TD QFX Files
 1. From the main EasyWeb page, click the Download button. This will let you select any of your accounts in a single file.
@@ -59,7 +127,6 @@ Read the Usage instructions and then [install from source](#using-from-source).
 
 3. Ensure you select **Intuit Quicken** as the file format.
 ![FileType](resources/td_downloadscreen.png)
-
 
 ### Security
 TD Lunch Money Importer stores your API key securely in your system's credentials store:
@@ -75,48 +142,14 @@ Log files are stored in `~/.lunchmoney/logs/importer.log` and rotated automatica
 - Keeps 5 most recent log files
 
 ### Dependencies
+
 - Python 3.9+
 - ofxparse
 - lunchable
 - colorama
 - keyring
-
-### Using From Source
-```bash
-git clone https://github.com/thehedgefrog/td-lunchmoney-importer.git
-cd td-lunchmoney-importer
-pip install -r requirements.txt
-python importer.py myfile.qfx
-```
-Where `myfile.qfx` is the path to a valid QFX.
-
-### Running Tests
-```bash
-python -m unittest discover -s tests -p "test_*.py" -v
-```
-
-### CI and Release Gates
-- Pull requests and pushes to `main` run CI on Python 3.9 and 3.11.
-- CI runs compile/import smoke checks and unit tests.
-- Release builds run pre-release checks first and only publish binaries if checks pass.
-- Version tags must match `lunchmoney.__version__` (for example: tag `v1.0.0` requires `__version__ = "1.0.0"`).
-
-### Release Checklist
-- Update version in `lunchmoney/__init__.py` (`__version__ = "X.Y.Z"`)
-- Ensure CI is green on `main`
-- Create and push tag `vX.Y.Z`
-- Create GitHub Release from tag `vX.Y.Z`
-- Verify build workflow publishes 3 assets:
-   - Windows x64 `.exe`
-   - macOS ARM64 binary
-   - Linux x64 binary
-
-### Contributing
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- PySide6
 
 ### License
-Distributed under the MIT License. See `LICENSE` for more information.
+
+Distributed under the MIT License. See `LICENSE` for details.
