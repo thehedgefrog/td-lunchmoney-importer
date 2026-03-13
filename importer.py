@@ -8,7 +8,6 @@ import argparse
 from pathlib import Path
 from typing import Optional
 from colorama import init
-from lunchmoney.gui import launch_gui
 
 # Import from our modules
 from lunchmoney import (
@@ -163,6 +162,7 @@ def main() -> None:
 
     # GUI default: supports drag-and-drop and optional startup file list.
     try:
+        from lunchmoney.gui import launch_gui
         raise_code = launch_gui(args.input_files or None)
     except Exception as exc:
         print_error(f"Failed to launch GUI: {exc}")
