@@ -46,20 +46,29 @@ jobs:
         from pathlib import Path
 
         ref = "${{ github.ref_name }}"
-        m = re.match(r"^v(\d+\.\d+\.\d+)$", ref)
+        m = re.match(r"^v(\d+\.\d+\.\d+)(?:[\-\.](.+))?$", ref)
         if not m:
-            raise SystemExit(f"Tag '{ref}' must follow vX.Y.Z")
+          raise SystemExit(f"Tag '{ref}' must follow vX.Y.Z or vX.Y.Z-suffix")
 
         expected = m.group(1)
+        suffix = m.group(2)
         init_text = Path("lunchmoney/__init__.py").read_text(encoding="utf-8")
         vm = re.search(r'__version__\s*=\s*"([^"]+)"', init_text)
         if not vm:
             raise SystemExit("Could not find __version__ in lunchmoney/__init__.py")
 
         actual = vm.group(1)
-        if actual != expected:
+
+        # Allow __version__ to match either X.Y.Z or X.Y.Z-suffix
+        if suffix:
+          if actual != f"{expected}-{suffix}":
             raise SystemExit(
-                f"Version mismatch: tag is {expected} but __version__ is {actual}"
+              f"Version mismatch: tag is {expected}-{suffix} but __version__ is {actual}"
+            )
+        else:
+          if actual != expected:
+            raise SystemExit(
+              f"Version mismatch: tag is {expected} but __version__ is {actual}"
             )
 
         print(f"Version check passed: {actual}")
