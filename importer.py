@@ -6,6 +6,7 @@ A utility to import TD Bank transactions to Lunch Money
 import sys
 import argparse
 from pathlib import Path
+from typing import Optional
 from colorama import init
 from lunchmoney.gui import launch_gui
 
@@ -27,7 +28,7 @@ from lunchmoney import (
     graceful_exit
 )
 
-def run_cli(input_file: str | None = None) -> None:
+def run_cli(input_file: Optional[str] = None) -> None:
     """Run the interactive terminal (CLI) flow."""
     state = ConfigurationState()
 
