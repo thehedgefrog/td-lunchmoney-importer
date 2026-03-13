@@ -7,6 +7,7 @@ import sys
 import argparse
 from pathlib import Path
 from colorama import init
+from lunchmoney.gui import launch_gui
 
 # Import from our modules
 from lunchmoney import (
@@ -26,26 +27,23 @@ from lunchmoney import (
     graceful_exit
 )
 
-def main() -> None:
-    """Main program flow"""
-    # Set up logging
-    setup_logging()
-
-    # Initialize colorama
-    init(autoreset=True)
-
-    # Show welcome header
-    display_welcome_header()
-
+def run_cli(input_file: str | None = None) -> None:
+    """Run the interactive terminal (CLI) flow."""
     state = ConfigurationState()
 
     try:
-        parser = argparse.ArgumentParser(description="Process QFX file and match accounts")
-        parser.add_argument("input_file", nargs='?', help="The QFX file to process")
-        args = parser.parse_args()
-
         # Get file path either from args or user input
-        qfx_path = args.input_file if args.input_file else get_qfx_path()
+        if input_file:
+            qfx_path = input_file
+        else:
+            try:
+                qfx_path = get_qfx_path()
+            except (EOFError, RuntimeError):
+                print_error(
+                    "No interactive input is available in CLI mode. "
+                    "Pass a QFX path (e.g. '--cli /path/to/file.qfx') or run without '--cli' for GUI mode."
+                )
+                graceful_exit(1)
 
         if not Path(qfx_path).exists():
             print_error(f"Input file not found: {qfx_path}")
@@ -140,6 +138,36 @@ def main() -> None:
     except KeyboardInterrupt:
         print("\nOperation cancelled by user")
         graceful_exit()
+
+
+def main() -> None:
+    """Application entry point.
+
+    Default mode is GUI. Use --cli to force terminal mode.
+    """
+    setup_logging()
+    init(autoreset=True)
+
+    parser = argparse.ArgumentParser(description="Import TD QFX transactions into Lunch Money")
+    parser.add_argument("input_files", nargs='*', help="Optional QFX file path(s)")
+    parser.add_argument("--cli", action="store_true", help="Force terminal/CLI mode")
+    args = parser.parse_args()
+
+    if args.cli:
+        display_welcome_header()
+        if len(args.input_files) > 1:
+            print_error("CLI mode currently supports one QFX file at a time. Using the first file provided.")
+        run_cli(args.input_files[0] if args.input_files else None)
+        return
+
+    # GUI default: supports drag-and-drop and optional startup file list.
+    try:
+        raise_code = launch_gui(args.input_files or None)
+    except Exception as exc:
+        print_error(f"Failed to launch GUI: {exc}")
+        graceful_exit(1)
+    if raise_code:
+        graceful_exit(raise_code)
 
 if __name__ == "__main__":
     main()
